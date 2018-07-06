@@ -1,5 +1,6 @@
 package onextent.iot.mqtt.hello
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Success, Failure}
 import akka.{Done, NotUsed}
 import akka.stream.ThrottleMode
