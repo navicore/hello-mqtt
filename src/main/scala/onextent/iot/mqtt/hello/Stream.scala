@@ -1,6 +1,7 @@
 package onextent.iot.mqtt.hello
 
-import akka.NotUsed
+import scala.util.{Success, Failure}
+import akka.{Done, NotUsed}
 import akka.stream.ThrottleMode
 import akka.stream.alpakka.mqtt._
 import akka.stream.alpakka.mqtt.scaladsl.MqttSink
@@ -10,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import onextent.iot.mqtt.hello.Conf._
 import onextent.iot.mqtt.hello.models.SayHello
 
+import scala.concurrent.Future
 import scala.language.implicitConversions
 
 object Stream extends LazyLogging {
@@ -23,11 +25,13 @@ object Stream extends LazyLogging {
     )
 
   def helloMqttMessage(): SayHello => MqttMessage =
-    (h: SayHello) =>
+    (h: SayHello) => {
+      logger.debug(h.hello())
       MqttMessage(mqttPublishTopic,
                   ByteString(h.asJson()),
                   Some(MqttQoS.AtLeastOnce),
                   retained = true)
+    }
 
   def apply(): Unit = {
 
@@ -35,9 +39,18 @@ object Stream extends LazyLogging {
 
     val helloSource = Source.fromGraph(new HelloSource()).via(throttlingFlow)
 
-    helloSource
+    val r: Future[Done] = helloSource
       .map(helloMqttMessage())
       .runWith(MqttSink(sinkSettings, MqttQoS.atLeastOnce))
+
+    r onComplete {
+      case Success(_) =>
+        logger.warn("success. but stream should not end!")
+        throw new Exception("stream should not end")
+      case Failure(e) =>
+        logger.error(s"failure. stream should not end! $e", e)
+        throw e
+    }
 
   }
 
