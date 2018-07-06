@@ -48,11 +48,9 @@ object Stream extends LazyLogging {
       case Success(_) =>
         logger.warn("success. but stream should not end!")
         actorSystem.terminate()
-        //throw new Exception("stream should not end")
       case Failure(e) =>
         logger.error(s"failure. stream should not end! $e", e)
         actorSystem.terminate()
-        //throw e
     }
 
   }
